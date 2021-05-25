@@ -4,18 +4,21 @@
 clear all;
 close all;
 
-addpath(genpath('/short/e14/rmh561/software/matlab-utilities/'));
+addpath(genpath('/g/data/e14/rmh561/software/matlab-utilities/'));
 startup;
 
 % Source data:
-type = 1; % 0 = ERA, 1 = JRA
-if (type)
+source_type = 1; % 0 = ERA, 1 = JRA
+if (source_type)
     base = 'JRAdata/';
     label = 'JRA55-do';
 else
     base = 'ERAdata/';
     label = 'ERA Interim';
 end
+
+% Output data:
+out_type = 1; % 0 = ERA, 1 = JRA
 
 %%% Get SST indices:
 
@@ -47,7 +50,7 @@ end
 
 Uname = [base 'U10_anom.nc'];
 Vname = [base 'V10_anom.nc'];
-if (type)
+if (source_type)
     U10 = ncread(Uname,'uas_10m');
     V10 = ncread(Vname,'vas_10m');
     lat = ncread(Uname,'latitude');
@@ -69,7 +72,7 @@ dvec = datevec(dnum);
 yr = dvec(:,1);
 mn = dvec(:,2);
 
-%%% Calculate N34 regression:
+%%% Calculate N34 regression on source data grid:
 minyr = max([min(yr) min(n34yr)]);
 maxyr = min([max(yr) max(n34yr)]);
 minyr = 1982;
@@ -225,7 +228,7 @@ V10reg = reshape(reshape(V10(:,:,ERAi:ERAf),[xL*yL tL])*(n34(n34i: ...
 
 %%%%%%%%%%%%% Idealized experiments:
 % Plot time series and fit:
-
+% $$$ 
 % Extreme El Nino's:
 inds = find((n34yr == 2015) | (n34yr == 2016) | (n34yr == 2017));
 n1516 = n34(inds);
@@ -235,7 +238,7 @@ inds = find((n34yr == 1982) | (n34yr == 1983) | (n34yr == 1984));
 n8283 = n34(inds);
 
 avg = (n8283+n1516+n9798)/3;
-outname = '';
+outname = '_ELNINO';
 
 % $$$ % Extreme La Nina's:
 % $$$ inds = find((n34yr == 1988) | (n34yr == 1989) | (n34yr == 1990));
@@ -244,7 +247,7 @@ outname = '';
 % $$$ n0708 = n34(inds);
 % $$$ inds = find((n34yr == 2010) | (n34yr == 2011) | (n34yr == 2012));
 % $$$ n1011 = n34(inds);
-% $$$ 
+
 % $$$ avg = (n8889+n0708+n1011)/3;
 % $$$ outname = '_LANINA';
 
@@ -303,87 +306,45 @@ avgs(1) = 0;
 % $$$ legend('2015-2017','1997-1999','1982-1984','Average','3-month Smoothed Average','MOM025');
 
 
-% Make new CORE-NYF u10/v10:
+if (out_type == 0)
+    % Make new CORE-NYF u10/v10:
 
 % $$$ baseCNYF = '/short/e14/rmh561/mom/input/gfdl_nyf_1080_clean/';
 % $$$ copyfile([baseCNYF 'u_10.nc'],'CNYFu_10.nc');
 % $$$ copyfile([baseCNYF 'v_10.nc'],'CNYFv_10.nc');
 
-CNYFtime = ncread('CNYFu_10.nc','TIME')+datenum([1900 1 1 0 0 0]);
-tL = length(CNYFtime);
-tCNYF = linspace(0,12,tL);
-tMON = -0.5:1:12.5;
+    CNYFtime = ncread('CNYFu_10.nc','TIME')+datenum([1900 1 1 0 0 0]);
+    tL = length(CNYFtime);
+    tCNYF = linspace(0,12,tL);
+    tMON = -0.5:1:12.5;
 
-CNYFlon = ncread('CNYFu_10.nc','LON');
-xL = length(CNYFlon);
-CNYFlat = ncread('CNYFu_10.nc','LAT');
-yL = length(CNYFlat);
-[CX,CY] = ndgrid(CNYFlon,CNYFlat);
+    CNYFlon = ncread('CNYFu_10.nc','LON');
+    xL = length(CNYFlon);
+    CNYFlat = ncread('CNYFu_10.nc','LAT');
+    yL = length(CNYFlat);
+    [CX,CY] = ndgrid(CNYFlon,CNYFlat);
 
-U10regCNYF = interp2(X',Y',U10reg',CX,CY,'linear');
-V10regCNYF = interp2(X',Y',V10reg',CX,CY,'linear');
+    U10regCNYF = interp2(X',Y',U10reg',CX,CY,'linear');
+    V10regCNYF = interp2(X',Y',V10reg',CX,CY,'linear');
 
-CNYFu10 = ncread('CNYFu_10.nc','U_10_MOD');
-CNYFv10 = ncread('CNYFv_10.nc','V_10_MOD');
+    CNYFu10 = ncread('CNYFu_10.nc','U_10_MOD');
+    CNYFv10 = ncread('CNYFv_10.nc','V_10_MOD');
 
-% $$$ % Idealized three-year runs:
-% $$$ for yi = 1:3
-% $$$     sprintf('Doing %02d',yi)
-% $$$     outnameU = sprintf(['u_10' outname '_yr%01d.nc'],yi);
-% $$$     outnameV = sprintf(['v_10' outname '_yr%01d.nc'],yi);
-% $$$     copyfile('CNYFu_10.nc',outnameU);
-% $$$     copyfile('CNYFv_10.nc',outnameV);
-% $$$     
-% $$$     if yi == 1
-% $$$         N34 = interp1(tMON,[0; avgs(1:13)],tCNYF);
-% $$$     elseif yi == 2
-% $$$         N34 = interp1(tMON,avgs(12:25),tCNYF);
-% $$$     elseif yi == 3
-% $$$         N34 = interp1(tMON,[avgs(24:36); 0],tCNYF);
-% $$$     end         
-% $$$     
-% $$$     U10 = CNYFu10 + repmat(U10regCNYF,[1 1 tL]).*repmat(permute(N34,[1 ...
-% $$$                         3 2]),[xL yL 1]);
-% $$$     V10 = CNYFv10 + repmat(V10regCNYF,[1 1 tL]).*repmat(permute(N34,[1 ...
-% $$$                         3 2]),[xL yL 1]);
-% $$$ 
-% $$$     ncid = netcdf.open(outnameU,'NC_WRITE');
-% $$$     netcdf.putVar(ncid,netcdf.inqVarID(ncid,'U_10_MOD'),U10);
-% $$$     netcdf.close(ncid);
-% $$$ 
-% $$$     ncid = netcdf.open(outnameV,'NC_WRITE');
-% $$$     netcdf.putVar(ncid,netcdf.inqVarID(ncid,'V_10_MOD'),V10);
-% $$$     netcdf.close(ncid);
-% $$$ end
-
-% $$$ % Diff for check:
-% $$$ for yi = 1:3
-% $$$     outnameU = sprintf(['u_10' outname '_yr%01d.nc'],yi);
-% $$$     outnameV = sprintf(['v_10' outname '_yr%01d.nc'],yi);
-% $$$     system(['ncdiff ' outnameU ' CNYFu_10.nc ' outnameU(1:end-3) ...
-% $$$             '_diff.nc']);
-% $$$     system(['ncdiff ' outnameV ' CNYFv_10.nc ' outnameV(1:end-3) ...
-% $$$             '_diff.nc']);
-% $$$ end
-
-
-% Full nino 3.4 time series:
-for yi = 1982:2016
+% Idealized three-year runs:
+for yi = 1:3
     sprintf('Doing %02d',yi)
-    outnameU = sprintf(['IIAF/u_10' outname '_yr%04d.nc'],yi);
-    outnameV = sprintf(['IIAF/v_10' outname '_yr%04d.nc'],yi);
+    outnameU = sprintf(['u_10' outname '_yr%01d.nc'],yi);
+    outnameV = sprintf(['v_10' outname '_yr%01d.nc'],yi);
     copyfile('CNYFu_10.nc',outnameU);
     copyfile('CNYFv_10.nc',outnameV);
     
-    if yi == 1982
-        tini = find(n34yr == yi,1,'first');
-        tfin = find(n34yr == yi,1,'last');
-        N34 = interp1(tMON,[0; n34(tini:tfin+1)],tCNYF);
-    else
-        tini = find(n34yr == yi,1,'first');
-        tfin = find(n34yr == yi,1,'last');
-        N34 = interp1(tMON,[n34(tini-1:tfin+1)],tCNYF);
-    end        
+    if yi == 1
+        N34 = interp1(tMON,[0; avgs(1:13)],tCNYF);
+    elseif yi == 2
+        N34 = interp1(tMON,avgs(12:25),tCNYF);
+    elseif yi == 3
+        N34 = interp1(tMON,[avgs(24:36); 0],tCNYF);
+    end         
     
     U10 = CNYFu10 + repmat(U10regCNYF,[1 1 tL]).*repmat(permute(N34,[1 ...
                         3 2]),[xL yL 1]);
@@ -400,9 +361,9 @@ for yi = 1982:2016
 end
 
 % Diff for check:
-for yi = 1982:2016
-    outnameU = sprintf(['IIAF/u_10' outname '_yr%04d.nc'],yi);
-    outnameV = sprintf(['IIAF/v_10' outname '_yr%04d.nc'],yi);
+for yi = 1:3
+    outnameU = sprintf(['u_10' outname '_yr%01d.nc'],yi);
+    outnameV = sprintf(['v_10' outname '_yr%01d.nc'],yi);
     system(['ncdiff ' outnameU ' CNYFu_10.nc ' outnameU(1:end-3) ...
             '_diff.nc']);
     system(['ncdiff ' outnameV ' CNYFv_10.nc ' outnameV(1:end-3) ...
@@ -410,3 +371,117 @@ for yi = 1982:2016
 end
 
 
+% $$$ % Full nino 3.4 time series:
+% $$$ for yi = 1982:2016
+% $$$     sprintf('Doing %02d',yi)
+% $$$     outnameU = sprintf(['IIAF/u_10' outname '_yr%04d.nc'],yi);
+% $$$     outnameV = sprintf(['IIAF/v_10' outname '_yr%04d.nc'],yi);
+% $$$     copyfile('CNYFu_10.nc',outnameU);
+% $$$     copyfile('CNYFv_10.nc',outnameV);
+% $$$     
+% $$$     if yi == 1982
+% $$$         tini = find(n34yr == yi,1,'first');
+% $$$         tfin = find(n34yr == yi,1,'last');
+% $$$         N34 = interp1(tMON,[0; n34(tini:tfin+1)],tCNYF);
+% $$$     else
+% $$$         tini = find(n34yr == yi,1,'first');
+% $$$         tfin = find(n34yr == yi,1,'last');
+% $$$         N34 = interp1(tMON,[n34(tini-1:tfin+1)],tCNYF);
+% $$$     end        
+% $$$     
+% $$$     U10 = CNYFu10 + repmat(U10regCNYF,[1 1 tL]).*repmat(permute(N34,[1 ...
+% $$$                         3 2]),[xL yL 1]);
+% $$$     V10 = CNYFv10 + repmat(V10regCNYF,[1 1 tL]).*repmat(permute(N34,[1 ...
+% $$$                         3 2]),[xL yL 1]);
+% $$$ 
+% $$$     ncid = netcdf.open(outnameU,'NC_WRITE');
+% $$$     netcdf.putVar(ncid,netcdf.inqVarID(ncid,'U_10_MOD'),U10);
+% $$$     netcdf.close(ncid);
+% $$$ 
+% $$$     ncid = netcdf.open(outnameV,'NC_WRITE');
+% $$$     netcdf.putVar(ncid,netcdf.inqVarID(ncid,'V_10_MOD'),V10);
+% $$$     netcdf.close(ncid);
+% $$$ end
+% $$$ 
+% $$$ % Diff for check:
+% $$$ for yi = 1982:2016
+% $$$     outnameU = sprintf(['IIAF/u_10' outname '_yr%04d.nc'],yi);
+% $$$     outnameV = sprintf(['IIAF/v_10' outname '_yr%04d.nc'],yi);
+% $$$     system(['ncdiff ' outnameU ' CNYFu_10.nc ' outnameU(1:end-3) ...
+% $$$             '_diff.nc']);
+% $$$     system(['ncdiff ' outnameV ' CNYFv_10.nc ' outnameV(1:end-3) ...
+% $$$             '_diff.nc']);
+% $$$ end
+
+
+else
+    % Make new JRA55 v1.3 u10/v10:
+
+    baseJRA = '/g/data/ik11/inputs/JRA-55/RYF/v1-3/';
+    u10fn = 'RYF.u_10.1990_1991.nc';
+    v10fn = 'RYF.v_10.1990_1991.nc';
+    copyfile([baseJRA u10fn],u10fn);
+    copyfile([baseJRA v10fn],v10fn);
+
+    JRAtime = ncread(u10fn,'time')+datenum([1900 1 1 0 0 0]);
+    tL = length(JRAtime);
+    tJRA = linspace(0,12,tL);
+    tMON = -0.5:1:12.5;
+
+% $$$     % No need for interpolation if using JRA55 source data:
+% $$$     JRAlon = ncread(u10fn,'lon');
+% $$$     xL = length(JRAlon);
+% $$$     JRAlat = ncread(u10fn,'lat');
+% $$$     yL = length(JRAlat);
+% $$$     [CX,CY] = ndgrid(JRAlon,JRAlat);
+% $$$ 
+% $$$     U10regJRA = interp2(X',Y',U10reg',CX,CY,'linear');
+% $$$     V10regJRA = interp2(X',Y',V10reg',CX,CY,'linear');
+% $$$ 
+    U10regJRA = U10reg;
+    V10regJRA = V10reg;
+
+    JRAu10 = ncread(u10fn,'uas_10m');
+    JRAv10 = ncread(v10fn,'vas_10m');
+
+% Idealized three-year runs:
+for yi = 1:3
+    sprintf('Doing %02d',yi)
+    outnameU = sprintf(['RYF.u_10.1990_1991' outname '_yr%01d.nc'],yi);
+    outnameV = sprintf(['RYF.v_10.1990_1991' outname '_yr%01d.nc'],yi);
+    copyfile(u10fn,outnameU);
+    copyfile(v10fn,outnameV);
+    
+    if yi == 1
+        N34 = interp1(tMON,[0; avgs(1:13)],tJRA);
+    elseif yi == 2
+        N34 = interp1(tMON,avgs(12:25),tJRA);
+    elseif yi == 3
+        N34 = interp1(tMON,[avgs(24:36); 0],tJRA);
+    end         
+    
+    U10 = JRAu10 + repmat(U10regJRA,[1 1 tL]).*repmat(permute(N34,[1 ...
+                        3 2]),[xL yL 1]);
+    V10 = JRAv10 + repmat(V10regJRA,[1 1 tL]).*repmat(permute(N34,[1 ...
+                        3 2]),[xL yL 1]);
+
+    ncid = netcdf.open(outnameU,'NC_WRITE');
+    netcdf.putVar(ncid,netcdf.inqVarID(ncid,'uas_10m'),U10);
+    netcdf.close(ncid);
+
+    ncid = netcdf.open(outnameV,'NC_WRITE');
+    netcdf.putVar(ncid,netcdf.inqVarID(ncid,'vas_10m'),V10);
+    netcdf.close(ncid);
+end
+
+% Diff for check:
+for yi = 1:3
+    outnameU = sprintf(['RYF.u_10.1990_1991' outname '_yr%01d.nc'],yi);
+    outnameV = sprintf(['RYF.v_10.1990_1991' outname '_yr%01d.nc'],yi);
+    system(['ncdiff ' outnameU ' ' u10fn ' ' outnameU(1:end-3) ...
+            '_diff.nc']);
+    system(['ncdiff ' outnameV ' ' v10fn ' ' outnameV(1:end-3) ...
+            '_diff.nc']);
+end
+    end
+    
