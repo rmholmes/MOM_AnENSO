@@ -1,0 +1,37 @@
+#!/bin/bash
+
+indir=/g/data/ua8/erai/netcdf/oper_an_sfc/lowres/sub-daily/
+tmpdir=/short/e14/rmh561/MOM_AnENSO/JRA55/
+outdir=/g/data/e14/rmh561/JRA55/
+
+# varname=uas_10m
+# outvar=U10
+# varname=vas_10m
+# outvar=V10
+varname=psl
+outvar=slp
+
+# Make climatology:
+for j in {1..12}
+do
+echo "Climatology Month $j"
+mn=$(printf '%02d' "$j")
+ncra -v $varname $tmpdir$outvar"_"*"_"$mn".nc" $tmpdir$outvar"_clim_"$mn".nc"
+done
+
+# Subtract climatology and make anomalies:
+for i in {1980..2016}
+do
+echo "Making Anomalies $i"
+for j in {1..12}
+do
+mn=$(printf '%02d' "$j")
+ncdiff $tmpdir$outvar"_$i""_"$mn".nc" $tmpdir$outvar"_clim_"$mn".nc" $tmpdir$outvar"_"$i"_"$mn"_anom.nc"
+done
+done
+
+# Combine into one file:
+echo "Making Single files"
+ncrcat $tmpdir$outvar"_clim"*".nc" $outdir$outvar"_clim.nc"
+ncrcat $tmpdir$outvar"_"*"_anom.nc" $outdir$outvar"_anom.nc"
+
