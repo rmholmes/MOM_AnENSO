@@ -58,11 +58,11 @@ y_psi = avg(avg(y_rho,1),2);
 
 
 %Get smooth isobath and segments:
-% $$$ isobath = 1000;
-isobath = 100;
+isobath = 1000;
+% $$$ isobath = 100;
 
 plotting = 1;
-plotnice = 1;
+plotnice = 0;
 sp = 5; %Number of points to average angle and center point.
 %sp = 20; %lr
 isp = 1; %Initial index to use
@@ -137,12 +137,13 @@ names{1} = 'Bellingshausen'
 % $$$ end
 
 % 100m isobath sections:
-SECS{2} = [47:61];%285:(285+22)] %hr
+% $$$ SECS{2} = [47:61];%285:(285+22)] %hr
+SECS{2} = [150:(150+22)] %hr
 for i=SECS{2}
     [lonr, latr, Corners,cc,lc] = get_lonlat_rotated(W,Wm,Nw,Nl,L,cseg(:,i));
     if (~plotnice)
     hold on;
-    plot([Corners(:,1); Corners(1,1)],[Corners(:,2); Corners(1,2)],'-k');
+    plot([Corners(:,1); Corners(1,1)],[Corners(:,2); Corners(1,2)],'-g');
     end
 end
 names{2} = 'Amundsen'
@@ -150,8 +151,8 @@ if (plotnice)
     [lonr, latr, Corners1,cc,lc] = get_lonlat_rotated(W,Wm,Nw,Nl,L,cseg(:,SECS{2}(1)));
     [lonr, latr, Corners2,cc,lc] = get_lonlat_rotated(W,Wm,Nw,Nl,L,cseg(:,SECS{2}(end)));
     plot([Corners2(3,1) Corners1(4,1) Corners1(1,1) Corners2(2,1) Corners2(3,1)],...
-         [Corners2(3,2) Corners1(4,2) Corners1(1,2) Corners2(2,2) Corners2(3,2)],'-b','linewidth',2);
-    text(-130,-70,names{2},'color','b');
+         [Corners2(3,2) Corners1(4,2) Corners1(1,2) Corners2(2,2) Corners2(3,2)],'-g','linewidth',2);
+    text(-130,-70,names{2},'color','g');
 end
 
 
