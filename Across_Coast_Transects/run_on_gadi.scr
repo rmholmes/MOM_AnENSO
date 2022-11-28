@@ -1,0 +1,4 @@
+module load matlab
+module load matlab_licence/unsw
+
+matlab -nodesktop -nosplash "plot_runMOM;"
